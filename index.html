@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hiragana Master</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@400;600&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 { font-size: 24px; margin-bottom: 20px; color: #ff4b4b; }
+
+        .hidden { display: none !important; }
+
+        /* Start Screen */
+        .mode-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            background: #f0f0f0;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn:hover {
+            background: #ff4b4b;
+            color: white;
+        }
+
+        /* Game Screen */
+        .progress {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .flashcard {
+            background: #fff;
+            border: 2px dashed #ff4b4b;
+            border-radius: 15px;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 80px;
+            color: #222;
+        }
+
+        /* MCQ Options */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            background: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .option-btn:hover { border-color: #ff4b4b; background: #fff5f5; }
+
+        /* Typing Mode */
+        .type-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .type-input:focus { border-color: #ff4b4b; }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #ff4b4b;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .submit-btn:hover { background: #e03e3e; }
+
+        /* Feedback Animation */
+        .correct { border-color: #4caf50 !important; background: #e8f5e9 !important; color: #2e7d32 !important;}
+        .wrong { border-color: #f44336 !important; background: #ffebee !important; color: #c62828 !important;}
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="start-screen">
+        <h1>Hiragana Master</h1>
+        <p style="margin-bottom: 20px; color: #666;">Select your practice mode:</p>
+        <button class="mode-btn" onclick="startGame('mcq')">1. Select Pronunciation (MCQ)</button>
+        <button class="mode-btn" onclick="startGame('type')">2. Type Pronunciation</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div class="progress" id="progress-text">Question 1 / 46</div>
+        <div class="flashcard" id="kana-display">あ</div>
+        
+        <div id="mcq-section" class="options-grid hidden">
+            <button class="option-btn" onclick="checkAnswer(this, 0)"></button>
+            <button class="option-btn" onclick="checkAnswer(this, 1)"></button>
+            <button class="option-btn" onclick="checkAnswer(this, 2)"></button>
+            <button class="option-btn" onclick="checkAnswer(this, 3)"></button>
+        </div>
+
+        <div id="type-section" class="hidden">
+            <input type="text" id="romaji-input" class="type-input" placeholder="Type romaji (e.g., 'a')" autocomplete="off">
+            <button class="submit-btn" onclick="checkTypingAnswer()">Submit</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h1>Practice Complete!</h1>
+        <div class="flashcard" style="font-size: 40px; border: none; height: auto; margin-bottom: 20px;">
+            <span id="score-display">0 / 46</span>
+        </div>
+        <p id="feedback-message" style="margin-bottom: 20px; color: #666;"></p>
+        <button class="submit-btn" onclick="location.reload()">Play Again</button>
+    </div>
+</div>
+
+<script>
+    const kanaData = [
+        {k:'あ',r:'a'}, {k:'い',r:'i'}, {k:'う',r:'u'}, {k:'え',r:'e'}, {k:'お',r:'o'},
+        {k:'か',r:'ka'}, {k:'き',r:'ki'}, {k:'く',r:'ku'}, {k:'け',r:'ke'}, {k:'こ',r:'ko'},
+        {k:'さ',r:'sa'}, {k:'し',r:'shi'}, {k:'す',r:'su'}, {k:'せ',r:'se'}, {k:'そ',r:'so'},
+        {k:'た',r:'ta'}, {k:'ち',r:'chi'}, {k:'つ',r:'tsu'}, {k:'て',r:'te'}, {k:'と',r:'to'},
+        {k:'な',r:'na'}, {k:'に',r:'ni'}, {k:'ぬ',r:'nu'}, {k:'ね',r:'ne'}, {k:'の',r:'no'},
+        {k:'は',r:'ha'}, {k:'ひ',r:'hi'}, {k:'ふ',r:'fu'}, {k:'へ',r:'he'}, {k:'ほ',r:'ho'},
+        {k:'ま',r:'ma'}, {k:'み',r:'mi'}, {k:'む',r:'mu'}, {k:'め',r:'me'}, {k:'も',r:'mo'},
+        {k:'や',r:'ya'}, {k:'ゆ',r:'yu'}, {k:'よ',r:'yo'},
+        {k:'ら',r:'ra'}, {k:'り',r:'ri'}, {k:'る',r:'ru'}, {k:'れ',r:'re'}, {k:'ろ',r:'ro'},
+        {k:'わ',r:'wa'}, {k:'を',r:'wo'}, {k:'ん',r:'n'}
+    ];
+
+    let currentQuestions = [];
+    let currentIdx = 0;
+    let score = 0;
+    let currentMode = '';
+
+    // DOM Elements
+    const startScreen = document.getElementById('start-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const resultScreen = document.getElementById('result-screen');
+    const kanaDisplay = document.getElementById('kana-display');
+    const progressText = document.getElementById('progress-text');
+    const mcqSection = document.getElementById('mcq-section');
+    const typeSection = document.getElementById('type-section');
+    const romajiInput = document.getElementById('romaji-input');
+    const optionBtns = document.querySelectorAll('.option-btn');
+
+    // Shuffle Array
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function startGame(mode) {
+        currentMode = mode;
+        currentQuestions = shuffle([...kanaData]);
+        currentIdx = 0;
+        score = 0;
+
+        startScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+
+        if (mode === 'mcq') {
+            mcqSection.classList.remove('hidden');
+            typeSection.classList.add('hidden');
+        } else {
+            mcqSection.classList.add('hidden');
+            typeSection.classList.remove('hidden');
+            // Enter key listener for typing mode
+            romajiInput.addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    checkTypingAnswer();
+                }
+            });
+        }
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentIdx >= currentQuestions.length) {
+            endGame();
+            return;
+        }
+
+        progressText.innerText = `Question ${currentIdx + 1} / ${currentQuestions.length}`;
+        kanaDisplay.innerText = currentQuestions[currentIdx].k;
+
+        if (currentMode === 'mcq') {
+            let correctAnswer = currentQuestions[currentIdx].r;
+            let options = [correctAnswer];
+            
+            // Generate 3 wrong options
+            while(options.length < 4) {
+                let randomKana = kanaData[Math.floor(Math.random() * kanaData.length)].r;
+                if(!options.includes(randomKana)) options.push(randomKana);
+            }
+            options = shuffle(options);
+
+            optionBtns.forEach((btn, index) => {
+                btn.innerText = options[index];
+                btn.classList.remove('correct', 'wrong');
+                btn.disabled = false;
+            });
+        } else {
+            romajiInput.value = '';
+            romajiInput.focus();
+            romajiInput.classList.remove('correct', 'wrong');
+        }
+    }
+
+    function checkAnswer(btn, index) {
+        let correctAnswer = currentQuestions[currentIdx].r;
+        let selectedAnswer = btn.innerText;
+
+        optionBtns.forEach(b => b.disabled = true); // Disable all buttons
+
+        if (selectedAnswer === correctAnswer) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            // Highlight correct answer
+            optionBtns.forEach(b => {
+                if(b.innerText === correctAnswer) b.classList.add('correct');
+            });
+        }
+
+        setTimeout(() => {
+            currentIdx++;
+            loadQuestion();
+        }, 1000);
+    }
+
+    function checkTypingAnswer() {
+        if(!romajiInput.value.trim()) return;
+
+        let correctAnswer = currentQuestions[currentIdx].r;
+        let userAnswer = romajiInput.value.trim().toLowerCase();
+
+        if (userAnswer === correctAnswer) {
+            romajiInput.classList.add('correct');
+            score++;
+        } else {
+            romajiInput.classList.add('wrong');
+            romajiInput.value = `Correct: ${correctAnswer}`;
+        }
+
+        setTimeout(() => {
+            currentIdx++;
+            loadQuestion();
+        }, 1200);
+    }
+
+    function endGame() {
+        gameScreen.classList.add('hidden');
+        resultScreen.classList.remove('hidden');
+        
+        document.getElementById('score-display').innerText = `${score} / ${currentQuestions.length}`;
+        
+        let feedback = document.getElementById('feedback-message');
+        if (score === 46) feedback.innerText = "Perfect! Subarashii! 🎉";
+        else if (score >= 35) feedback.innerText = "Great job! Keep it up! 👏";
+        else feedback.innerText = "Good effort! Let's practice more. 💪";
+    }
+</script>
+
+</body>
+</html>
