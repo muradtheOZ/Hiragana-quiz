@@ -125,6 +125,89 @@
         .correct { border-color: #4caf50 !important; background: #e8f5e9 !important; color: #2e7d32 !important;}
         .wrong { border-color: #f44336 !important; background: #ffebee !important; color: #c62828 !important;}
 
+        /* Mistakes Section */
+        .mistakes-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ff4b4b;
+            border-radius: 10px;
+            background: white;
+            color: #ff4b4b;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mistakes-btn:hover {
+            background: #fff5f5;
+        }
+
+        .mistakes-list {
+            margin-top: 15px;
+            text-align: left;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .mistakes-list-header {
+            background: #fff5f5;
+            padding: 10px 15px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #ff4b4b;
+            border-bottom: 1px solid #eee;
+        }
+
+        .mistake-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #f5f5f5;
+            gap: 12px;
+        }
+
+        .mistake-item:last-child {
+            border-bottom: none;
+        }
+
+        .mistake-kana {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-size: 28px;
+            color: #222;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .mistake-arrow {
+            color: #bbb;
+            font-size: 14px;
+        }
+
+        .mistake-romaji {
+            font-size: 16px;
+            font-weight: 600;
+            color: #ff4b4b;
+        }
+
+        .review-btn {
+            width: 100%;
+            padding: 13px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #4caf50;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .review-btn:hover { background: #388e3c; }
+
     </style>
 </head>
 <body>
@@ -160,7 +243,15 @@
             <span id="score-display">0 / 46</span>
         </div>
         <p id="feedback-message" style="margin-bottom: 20px; color: #666;"></p>
-        <button class="submit-btn" onclick="location.reload()">Play Again</button>
+        <button id="show-mistakes-btn" class="mistakes-btn hidden" onclick="toggleMistakes()">Show Mistakes ▼</button>
+        <div id="mistakes-container" class="hidden">
+            <div class="mistakes-list">
+                <div class="mistakes-list-header">Characters you got wrong:</div>
+                <div id="mistakes-items"></div>
+            </div>
+            <button class="review-btn" onclick="reviewMistakes()">🔁 Review Mistakes</button>
+        </div>
+        <button class="submit-btn" style="margin-top: 12px;" onclick="location.reload()">Play Again</button>
     </div>
 </div>
 
@@ -182,6 +273,7 @@
     let currentIdx = 0;
     let score = 0;
     let currentMode = '';
+    let mistakes = [];
 
     // DOM Elements
     const startScreen = document.getElementById('start-screen');
@@ -204,6 +296,7 @@
         currentQuestions = shuffle([...kanaData]);
         currentIdx = 0;
         score = 0;
+        mistakes = [];
 
         startScreen.classList.add('hidden');
         gameScreen.classList.remove('hidden');
@@ -268,6 +361,7 @@
             score++;
         } else {
             btn.classList.add('wrong');
+            mistakes.push(currentQuestions[currentIdx]);
             // Highlight correct answer
             optionBtns.forEach(b => {
                 if(b.innerText === correctAnswer) b.classList.add('correct');
@@ -292,6 +386,7 @@
         } else {
             romajiInput.classList.add('wrong');
             romajiInput.value = `Correct: ${correctAnswer}`;
+            mistakes.push(currentQuestions[currentIdx]);
         }
 
         setTimeout(() => {
@@ -307,9 +402,49 @@
         document.getElementById('score-display').innerText = `${score} / ${currentQuestions.length}`;
         
         let feedback = document.getElementById('feedback-message');
-        if (score === 46) feedback.innerText = "Perfect! Subarashii! 🎉";
-        else if (score >= 35) feedback.innerText = "Great job! Keep it up! 👏";
+        if (score === currentQuestions.length) feedback.innerText = "Perfect! Subarashii! 🎉";
+        else if (score >= Math.round(currentQuestions.length * 0.75)) feedback.innerText = "Great job! Keep it up! 👏";
         else feedback.innerText = "Good effort! Let's practice more. 💪";
+
+        if (mistakes.length > 0) {
+            document.getElementById('show-mistakes-btn').classList.remove('hidden');
+        }
+    }
+
+    function toggleMistakes() {
+        const container = document.getElementById('mistakes-container');
+        const btn = document.getElementById('show-mistakes-btn');
+        const isHidden = container.classList.contains('hidden');
+
+        if (isHidden) {
+            const itemsEl = document.getElementById('mistakes-items');
+            itemsEl.innerHTML = mistakes.map(m =>
+                `<div class="mistake-item">
+                    <span class="mistake-kana">${m.k}</span>
+                    <span class="mistake-arrow">→</span>
+                    <span class="mistake-romaji">${m.r}</span>
+                </div>`
+            ).join('');
+            container.classList.remove('hidden');
+            btn.innerText = 'Hide Mistakes ▲';
+        } else {
+            container.classList.add('hidden');
+            btn.innerText = 'Show Mistakes ▼';
+        }
+    }
+
+    function reviewMistakes() {
+        if (mistakes.length === 0) return;
+        currentQuestions = shuffle([...mistakes]);
+        currentIdx = 0;
+        score = 0;
+        mistakes = [];
+
+        resultScreen.classList.add('hidden');
+        document.getElementById('mistakes-container').classList.add('hidden');
+        document.getElementById('show-mistakes-btn').classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+        loadQuestion();
     }
 </script>
 
